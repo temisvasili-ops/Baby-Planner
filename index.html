@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#6B3A5E">
+<title>Baby Arrival Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Sign-in -->
+<main id="auth" class="wrap auth" hidden>
+  <div class="eyebrow">Private · two people only</div>
+  <h1>Baby Arrival Plan</h1>
+  <form id="authForm" class="card grid">
+    <label>Email<input id="a-email" type="email" autocomplete="email" required></label>
+    <label>Password<input id="a-pass" type="password" autocomplete="current-password" minlength="8" required></label>
+    <div class="actions">
+      <button class="btn" type="button" id="a-reset">Forgot password</button>
+      <button class="btn" type="button" id="a-signup">Create account</button>
+      <button class="btn primary" type="submit">Sign in</button>
+    </div>
+    <p id="a-msg" class="muted small" role="status"></p>
+  </form>
+  <p class="muted small">Only invited email addresses can create an account.</p>
+</main>
+
+<!-- App -->
+<div id="app" hidden>
+  <header class="top">
+    <div class="wrap">
+      <div class="head-row">
+        <div>
+          <div class="eyebrow" id="weekline">—</div>
+          <h1>Baby Arrival Plan</h1>
+        </div>
+        <div class="head-actions">
+          <button class="btn" id="settingsBtn" type="button">Settings</button>
+          <button class="btn" id="signOutBtn" type="button">Sign out</button>
+        </div>
+      </div>
+      <div class="ruler" aria-hidden="true"><svg id="ruler" viewBox="0 0 600 54" preserveAspectRatio="none"></svg></div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-view="plan" aria-selected="true">Plan</button>
+        <button role="tab" data-view="kit" aria-selected="false">Kit</button>
+        <button role="tab" data-view="caddies" aria-selected="false">Caddies</button>
+        <button role="tab" data-view="budget" aria-selected="false">Budget</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="notice" class="notice" hidden></div>
+
+    <!-- PLAN -->
+    <section id="view-plan">
+      <div class="stats" id="planStats"></div>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Owner" id="ownerSeg"></div>
+        <div class="seg" role="group" aria-label="Status" id="statusSeg"></div>
+        <button class="btn primary" id="addTask" type="button">Add task</button>
+      </div>
+      <section class="focus" id="focus"></section>
+      <div id="phases"></div>
+    </section>
+
+    <!-- KIT -->
+    <section id="view-kit" hidden>
+      <div class="stats" id="kitStats"></div>
+      <div class="toolbar">
+        <div class="seg scroll" role="group" aria-label="Zone" id="zoneSeg"></div>
+      </div>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Show" id="kitShowSeg"></div>
+        <button class="btn primary" id="addItem" type="button">Add item</button>
+      </div>
+      <div id="kitList"></div>
+    </section>
+
+    <!-- CADDIES -->
+    <section id="view-caddies" hidden>
+      <div class="toolbar"><p class="muted" style="margin:0;flex:1 1 240px">Each caddy is a packing list. Tick items as they go in.</p><button class="btn primary" id="addCaddy" type="button">Add caddy</button></div>
+      <div id="caddyGrid" class="caddy-grid"></div>
+    </section>
+
+    <!-- BUDGET -->
+    <section id="view-budget" hidden>
+      <div class="stats" id="budgetStats"></div>
+      <div class="table-wrap"><table class="budget" id="budgetTable"></table></div>
+      <p class="muted small">Estimates come from the Est. cost field on each kit item. Add actual cost once it's bought.</p>
+    </section>
+  </div>
+</div>
+
+<!-- Task dialog -->
+<dialog id="taskDlg">
+  <form class="grid" id="taskForm" method="dialog">
+    <h2 id="taskDlgTitle">Add task</h2>
+    <label>Task<input id="t-title" required maxlength="160"></label>
+    <div class="row">
+      <label>Owner<select id="t-owner"></select></label>
+      <label>Workstream<select id="t-stream"></select></label>
+    </div>
+    <div class="row">
+      <label>Timing<select id="t-anchor"><option value="week">Pregnancy week</option><option value="birth">Days after birth</option></select></label>
+      <label>Week / day<input id="t-at" type="number" min="0" max="400" required></label>
+    </div>
+    <div class="row">
+      <label>Status<select id="t-status"><option value="todo">To do</option><option value="doing">In progress</option><option value="done">Done</option></select></label>
+      <label class="check"><input id="t-hard" type="checkbox"> Statutory deadline</label>
+    </div>
+    <label>Notes<textarea id="t-note" rows="3" maxlength="800"></textarea></label>
+    <div class="actions">
+      <button class="btn danger" type="button" id="t-del" hidden>Delete</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Item dialog -->
+<dialog id="itemDlg">
+  <form class="grid" id="itemForm" method="dialog">
+    <h2 id="itemDlgTitle">Add item</h2>
+    <label>Item<input id="i-name" required maxlength="160"></label>
+    <div class="row">
+      <label>Zone<select id="i-zone"></select></label>
+      <label>Quantity<input id="i-qty" type="number" min="0" max="999" value="1"></label>
+    </div>
+    <div class="row">
+      <label>Status<select id="i-status"></select></label>
+      <label>Owner<select id="i-owner"></select></label>
+    </div>
+    <div class="row">
+      <label>Source<select id="i-source"><option value="buy">Buy new</option><option value="secondhand">Second-hand</option><option value="borrow">Borrow</option><option value="gift">Gift</option></select></label>
+      <label class="check"><input id="i-ess" type="checkbox" checked> Essential before birth</label>
+    </div>
+    <div class="row">
+      <label>Est. cost (£)<input id="i-est" type="number" min="0" step="0.01" inputmode="decimal"></label>
+      <label>Actual cost (£)<input id="i-act" type="number" min="0" step="0.01" inputmode="decimal"></label>
+    </div>
+    <label>Link<input id="i-link" type="url" placeholder="https://"></label>
+    <label>Notes<textarea id="i-note" rows="2" maxlength="600"></textarea></label>
+    <div class="actions">
+      <button class="btn danger" type="button" id="i-del" hidden>Delete</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Caddy dialog -->
+<dialog id="caddyDlg">
+  <form class="grid" id="caddyForm" method="dialog">
+    <h2 id="caddyDlgTitle">Add caddy</h2>
+    <label>Name<input id="c-name" required maxlength="80"></label>
+    <div class="row">
+      <label>Where it lives<input id="c-loc" maxlength="60"></label>
+      <label>Ready by week<input id="c-week" type="number" min="14" max="42"></label>
+    </div>
+    <div class="actions">
+      <button class="btn danger" type="button" id="c-del" hidden>Delete caddy</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Settings dialog -->
+<dialog id="setDlg">
+  <form class="grid" id="setForm" method="dialog">
+    <h2>Settings</h2>
+    <div class="row">
+      <label>Your name<input id="s-me" maxlength="30"></label>
+      <label>Partner's name<input id="s-partner" maxlength="30"></label>
+    </div>
+    <div class="row">
+      <label>Estimated due date<input id="s-edd" type="date" required></label>
+      <label>Birth date (once born)<input id="s-birth" type="date"></label>
+    </div>
+    <label>Spend without asking, up to (£)<input id="s-threshold" type="number" min="0" step="1"></label>
+    <div class="actions">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
