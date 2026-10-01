@@ -2,7 +2,22 @@
 (function () {
   "use strict";
   const cfg = window.BABY_PLAN_CONFIG;
-  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+
+  // Private-link access: the code after #k= is sent with every request and checked by the database.
+  const KEY_STORE = "babyPlanKey";
+  function readKey() {
+    const m = location.hash.match(/[#&]k=([A-Za-z0-9_-]{16,})/);
+    if (m) {
+      try { localStorage.setItem(KEY_STORE, m[1]); } catch (e) {}
+      return m[1];
+    }
+    try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; }
+  }
+  const planKey = readKey();
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { headers: { "x-plan-key": planKey } }
+  });
 
   const STREAMS = { health: "Health & care", work: "Work & money", home: "Home & kit", childcare: "Childcare", admin: "Admin & legal", birth: "Birth & postnatal", us: "Us" };
   const ZONES = { bedroom: "Bedroom: sleep & night", changing: "Changing", bathroom: "Bathroom", feeding: "Feeding", out: "Out & about", clothing: "Clothing", postpartum: "Your recovery", safety: "Health & safety", other: "Other" };
@@ -59,29 +74,19 @@
     if (err) { notify("Couldn't load the plan: " + err.error.message); return; }
     if (s.data) state.settings = s.data;
     state.tasks = t.data; state.items = i.data; state.caddies = c.data; state.caddyItems = ci.data;
-    if (!t.data.length && !i.data.length) notify("Signed in, but no plan data is visible. Your email may not be on the invite list.");
-    render();
+    return !!(s.data || t.data.length);
   }
-  const reloaders = {
-    settings: async () => { const r = await sb.from("settings").select("*").eq("id", 1).maybeSingle(); if (r.data) state.settings = r.data; },
-    tasks: async () => { const r = await sb.from("tasks").select("*"); if (r.data) state.tasks = r.data; },
-    items: async () => { const r = await sb.from("items").select("*"); if (r.data) state.items = r.data; },
-    caddies: async () => { const r = await sb.from("caddies").select("*").order("sort"); if (r.data) state.caddies = r.data; },
-    caddy_items: async () => { const r = await sb.from("caddy_items").select("*").order("sort"); if (r.data) state.caddyItems = r.data; }
-  };
-  let channel = null, pending = new Set(), timer = null;
-  function subscribe() {
-    if (channel) return;
-    channel = sb.channel("plan");
-    Object.keys(reloaders).forEach(table => {
-      channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
-        pending.add(table); clearTimeout(timer);
-        timer = setTimeout(async () => { const ts = [...pending]; pending.clear(); await Promise.all(ts.map(x => reloaders[x]())); render(); }, 250);
-      });
-    });
-    channel.subscribe();
+  // Keep both phones in step: refresh every 20 s while the page is open, and whenever it comes back to the foreground.
+  // Skipped while a dialog is open or a caddy input has focus, so a refresh never interrupts typing.
+  async function refresh() {
+    if ($("app").hidden || document.hidden) return;
+    if (document.querySelector("dialog[open]")) return;
+    const a = document.activeElement;
+    if (a && a.matches && a.matches("input,textarea,select")) return;
+    if (await loadAll()) render();
   }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("app").hidden) loadAll(); });
+  setInterval(refresh, 20000);
+  document.addEventListener("visibilitychange", refresh);
 
   /* ---------- render: shared ---------- */
   function renderHeader() {
@@ -360,37 +365,16 @@
     if (await run(sb.from("settings").update(row).eq("id", 1))) { Object.assign(state.settings, row); $("setDlg").close(); render(); }
   });
 
-  /* ---------- auth ---------- */
-  const amsg = m => { $("a-msg").textContent = m; };
-  $("authForm").addEventListener("submit", async ev => {
-    ev.preventDefault(); amsg("Signing in…");
-    const { error } = await sb.auth.signInWithPassword({ email: $("a-email").value.trim(), password: $("a-pass").value });
-    amsg(error ? (error.message === "Email not confirmed" ? "Confirm your email first: check your inbox for the link." : "Sign-in failed: " + error.message) : "");
-  });
-  $("a-signup").onclick = async () => {
-    const email = $("a-email").value.trim(), password = $("a-pass").value;
-    if (!email || password.length < 8) return amsg("Enter your email and a password of at least 8 characters, then tap Create account.");
-    amsg("Creating account…");
-    const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } });
-    if (error) return amsg(/database error/i.test(error.message) ? "This email isn't on the invite list." : "Couldn't create the account: " + error.message);
-    amsg(data.session ? "" : "Account created. Check your email for a confirmation link, then sign in.");
-  };
-  $("a-reset").onclick = async () => {
-    const email = $("a-email").value.trim(); if (!email) return amsg("Enter your email first.");
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
-    amsg(error ? "Couldn't send the reset email: " + error.message : "If that email is invited, a reset link is on its way.");
-  };
-  $("signOutBtn").onclick = () => sb.auth.signOut();
-
-  let started = false;
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === "PASSWORD_RECOVERY") {
-      const pw = window.prompt("Choose a new password (at least 8 characters)");
-      if (pw && pw.length >= 8) { const { error } = await sb.auth.updateUser({ password: pw }); notify(error ? "Password not changed: " + error.message : "Password updated."); }
-    }
-    const signedIn = !!session;
-    $("auth").hidden = signedIn; $("app").hidden = !signedIn;
-    if (signedIn && !started) { started = true; await loadAll(); subscribe(); }
-    if (!signedIn) { started = false; if (channel) { sb.removeChannel(channel); channel = null; } }
-  });
+  /* ---------- start ---------- */
+  function locked() { $("auth").hidden = false; $("app").hidden = true; }
+  window.addEventListener("hashchange", () => { if (/[#&]k=/.test(location.hash)) location.reload(); });
+  (async () => {
+    if (!planKey) return locked();
+    // Tidy the address bar so the code isn't left on screen; it's kept on this device.
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    const ok = await loadAll();
+    if (ok === undefined) { $("auth").hidden = true; $("app").hidden = false; render(); return; } // network error: show notice
+    if (!ok) { try { localStorage.removeItem(KEY_STORE); } catch (e) {} return locked(); }
+    $("auth").hidden = true; $("app").hidden = false; render();
+  })();
 })();

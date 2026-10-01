@@ -12,21 +12,14 @@
 </head>
 <body>
 
-<!-- Sign-in -->
+<!-- Shown when the private link is missing or wrong -->
 <main id="auth" class="wrap auth" hidden>
-  <div class="eyebrow">Private · two people only</div>
+  <div class="eyebrow">Private plan</div>
   <h1>Baby Arrival Plan</h1>
-  <form id="authForm" class="card grid">
-    <label>Email<input id="a-email" type="email" autocomplete="email" required></label>
-    <label>Password<input id="a-pass" type="password" autocomplete="current-password" minlength="8" required></label>
-    <div class="actions">
-      <button class="btn" type="button" id="a-reset">Forgot password</button>
-      <button class="btn" type="button" id="a-signup">Create account</button>
-      <button class="btn primary" type="submit">Sign in</button>
-    </div>
-    <p id="a-msg" class="muted small" role="status"></p>
-  </form>
-  <p class="muted small">Only invited email addresses can create an account.</p>
+  <div class="card grid">
+    <p style="margin:0">Open this page from your private link. It ends in <code>#k=</code> followed by a code.</p>
+    <p class="muted small" style="margin:0">Once you've opened the full link on a device, the plain address works on that device too.</p>
+  </div>
 </main>
 
 <!-- App -->
@@ -40,7 +33,6 @@
         </div>
         <div class="head-actions">
           <button class="btn" id="settingsBtn" type="button">Settings</button>
-          <button class="btn" id="signOutBtn" type="button">Sign out</button>
         </div>
       </div>
       <div class="ruler" aria-hidden="true"><svg id="ruler" viewBox="0 0 600 54" preserveAspectRatio="none"></svg></div>

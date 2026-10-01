@@ -9,17 +9,18 @@ A private planner for two: tasks timed to pregnancy weeks, a kit register by zon
 - `vendor/`: the Supabase JS client (v2.117.2), bundled so the site has no third-party script dependencies.
 - `supabase/seed.sql`: the starting tasks, kit and caddies (already loaded).
 
-## Security model
+## Access model
 
-- Only emails in `private.allowed_emails` can create an account. A trigger on `auth.users` rejects anyone else.
-- Every table has row-level security: signed-in users see data only if their email is on that list. Anonymous requests are refused.
-- To invite someone, run in the Supabase SQL editor:
-  `insert into private.allowed_emails(email) values ('name@example.com');`
+- No accounts. The private link ends in `#k=<code>`; the app sends that code with every request and the database checks it (row-level security on every table).
+- Without the code, the database returns nothing, even to someone who has the site address.
+- Opening the full link once stores the code on that device, so the plain address works there afterwards.
+- To change the code (e.g. if the link leaks), run in the Supabase SQL editor:
+  `update private.plan_key set key = '<new long random code>';` then use the new link.
+- Sign-ups are disabled at the database.
 
 ## Deploy
 
 1. In Vercel: Add New → Project → import this GitHub repo. Framework preset: Other. No build command; output directory is the repo root.
-2. In Supabase → Authentication → URL Configuration: set Site URL to your Vercel URL and add it under Redirect URLs.
-3. Open the site, enter your email and a password, and tap Create account. Confirm via the email link, then sign in.
+2. Open `https://<your-vercel-url>/#k=<code>` on each phone and bookmark it.
 
 Every push to `main` redeploys automatically.
