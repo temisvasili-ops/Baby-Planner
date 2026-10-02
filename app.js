@@ -22,6 +22,7 @@
   const STREAMS = { health: "Health & care", work: "Work & money", home: "Home & kit", childcare: "Childcare", admin: "Admin & legal", birth: "Birth & postnatal", us: "Us" };
   const ZONES = { bedroom: "Bedroom: sleep & night", changing: "Changing", bathroom: "Bathroom", feeding: "Feeding", out: "Out & about", clothing: "Clothing", postpartum: "Your recovery", safety: "Health & safety", other: "Living & play" };
   const ISTATUS = [["shortlist", "Shortlist"], ["ordered", "Ordered"], ["arrived", "Arrived"], ["in_place", "In place"]];
+  const VERDICT = { loved: "Parents' favourite", mixed: "Mixed reviews", skip: "Often unused" };
   const SOURCE = { buy: "Buy new", secondhand: "Second-hand", borrow: "Borrow", gift: "Gift" };
   const PHASES = [
     { name: "Second trimester", range: "Weeks 14–27", test: t => t.anchor === "week" && t.at_n < 28 },
@@ -90,7 +91,7 @@
 
   // Self-update: home-screen apps can't be reloaded by hand, so check version.json
   // (bypassing the cache) on open and when returning to the app; reload once if newer.
-  const APP_VERSION = "8";
+  const APP_VERSION = "9";
   async function checkForUpdate() {
     if (document.hidden) return;
     try {
@@ -186,7 +187,7 @@
     const link = safeUrl(it.link);
     return `<li class="row-item ${it.status === "in_place" ? "done" : ""}">
       <button class="tick ${it.status === "in_place" ? "done" : idx > 0 ? "prog" : ""}" data-istep="${it.id}" aria-label="Advance status">${it.status === "in_place" ? "✓" : ""}</button>
-      <div class="main"><div class="title">${esc(it.name)}${it.qty > 1 ? ` <span class="qty">×${it.qty}</span>` : ""}${it.essential ? "" : ' <span class="opt">optional</span>'}</div>
+      <div class="main"><div class="title">${esc(it.name)}${it.qty > 1 ? ` <span class="qty">×${it.qty}</span>` : ""}${it.essential ? "" : ' <span class="opt">optional</span>'}${VERDICT[it.verdict] ? ` <span class="verdict ${it.verdict}">${VERDICT[it.verdict]}</span>` : ""}</div>
       <div class="meta">
         <button class="status-btn" data-istep="${it.id}"><span class="pipe s${idx + 1}"><i></i><i></i><i></i><i></i></span>${ISTATUS[idx][1]}</button>
         <button class="chip ${it.owner}" data-iowner="${it.id}">${esc(ownerName(it.owner))}</button>
@@ -194,12 +195,13 @@
         ${cost ? `<span class="due">${cost}</span>` : ""}
         <button class="btn mini" data-iedit="${it.id}">Edit</button></div>
       ${it.note || link ? `<div class="note">${esc(it.note)}${link ? ` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Product link</a>` : ""}</div>` : ""}
+      ${it.parents_say ? `<div class="parents-say"><b>Parents say:</b> ${esc(it.parents_say)}</div>` : ""}
       </div></li>`;
   }
   function renderKit() {
     const zones = [["all", "All zones"], ...Object.entries(ZONES).filter(([z]) => z !== "other" || state.items.some(i => i.zone === "other"))];
     seg($("zoneSeg"), zones, state.zone, "zone");
-    seg($("kitShowSeg"), [["todo", "Not in place"], ["essential", "Essentials"], ["all", "All"]], state.kitShow, "kitshow");
+    seg($("kitShowSeg"), [["todo", "Not in place"], ["essential", "Essentials"], ["loved", "Favourites"], ["all", "All"]], state.kitShow, "kitshow");
     const ess = state.items.filter(i => i.essential);
     const essDone = ess.filter(i => i.status === "in_place").length;
     const ordered = state.items.filter(i => i.status === "ordered").length;
@@ -211,6 +213,7 @@
     let list = state.items.filter(i => state.zone === "all" || i.zone === state.zone);
     if (state.kitShow === "todo") list = list.filter(i => i.status !== "in_place");
     if (state.kitShow === "essential") list = list.filter(i => i.essential);
+    if (state.kitShow === "loved") list = list.filter(i => i.verdict === "loved");
     const zoneKeys = Object.keys(ZONES).filter(z => list.some(i => i.zone === z));
     $("kitList").innerHTML = zoneKeys.length ? zoneKeys.map(z => {
       const zl = list.filter(i => i.zone === z).sort((a, b) => (b.essential - a.essential) || istIdx(a.status) - istIdx(b.status) || a.name.localeCompare(b.name));
