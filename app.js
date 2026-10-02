@@ -142,11 +142,14 @@
     const open = state.tasks.filter(t => t.status !== "done");
     const late = open.filter(t => dueDate(t) < now).length;
     const soon = open.filter(t => { const d = dueDate(t); return d >= now && d - now <= 14 * DAY; }).length;
-    const by = o => open.filter(t => t.owner === o).length;
-    $("planStats").innerHTML = `<div><b>${state.tasks.length - open.length}/${state.tasks.length}</b> <span>done</span></div>
-      <div><b style="color:var(--warn)">${soon}</b> <span>due in 2 weeks</span></div>
-      <div><b style="color:var(--bad)">${late}</b> <span>overdue</span></div>
-      <div><b>${by("me")}·${by("partner")}·${by("both")}</b> <span>open: ${esc(s.me_name)} · ${esc(s.partner_name)} · joint</span></div>`;
+    const total = state.tasks.length, done = total - open.length, pct = total ? Math.round(done / total * 100) : 0;
+    $("planStats").innerHTML = `<div class="tiles">
+        <div class="tile"><b>${done}<small>/${total}</small></b><span>done</span></div>
+        <div class="tile${soon ? " warn" : ""}"><b>${soon}</b><span>due in 2 weeks</span></div>
+        <div class="tile${late ? " bad" : ""}"><b>${late}</b><span>overdue</span></div>
+      </div>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Tasks done"><span style="width:${pct}%"></span></div>
+      <div class="progress-label"><span>${pct}% of tasks done</span><span>${open.length} to go</span></div>`;
     const next = sortTasks(open.filter(t => visibleTask(t) && dueDate(t) - now <= 21 * DAY));
     $("focus").innerHTML = `<div class="eyebrow">Next three weeks</div><h2>Agenda for this week's check-in</h2>${next.length ? `<ul class="list">${next.map(taskRow).join("")}</ul>` : `<p class="empty">Nothing due in the next three weeks for this filter.</p>`}`;
     $("phases").innerHTML = PHASES.map(p => {
