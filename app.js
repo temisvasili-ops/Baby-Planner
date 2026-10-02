@@ -368,10 +368,21 @@
   /* ---------- start ---------- */
   function locked() { $("auth").hidden = false; $("app").hidden = true; }
   window.addEventListener("hashchange", () => { if (/[#&]k=/.test(location.hash)) location.reload(); });
+  // Recovery: paste the full link (or just the code) on the locked page.
+  $("keyForm").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const v = $("keyInput").value.trim();
+    const m = v.match(/k=([A-Za-z0-9_-]{16,})/) || v.match(/^([A-Za-z0-9_-]{16,})$/);
+    if (!m) { $("keyMsg").textContent = "That doesn't look like the private link. Paste the whole link, including the part after #k="; return; }
+    history.replaceState(null, "", location.pathname + location.search + "#k=" + m[1]);
+    location.reload();
+  });
   (async () => {
     if (!planKey) return locked();
-    // Tidy the address bar so the code isn't left on screen; it's kept on this device.
-    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    // Keep the code in the address so "Add to Home Screen" and bookmarks save the full private link.
+    // (Home-screen apps on iPhone have their own storage, so they can't rely on the remembered code.)
+    const want = "#k=" + planKey;
+    if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
     const ok = await loadAll();
     if (ok === undefined) { $("auth").hidden = true; $("app").hidden = false; render(); return; } // network error: show notice
     if (!ok) { try { localStorage.removeItem(KEY_STORE); } catch (e) {} return locked(); }
