@@ -20,7 +20,7 @@
   });
 
   const STREAMS = { health: "Health & care", work: "Work & money", home: "Home & kit", childcare: "Childcare", admin: "Admin & legal", birth: "Birth & postnatal", us: "Us" };
-  const ZONES = { bedroom: "Bedroom: sleep & night", changing: "Changing", bathroom: "Bathroom", feeding: "Feeding", out: "Out & about", clothing: "Clothing", postpartum: "Your recovery", safety: "Health & safety", other: "Other" };
+  const ZONES = { bedroom: "Bedroom: sleep & night", changing: "Changing", bathroom: "Bathroom", feeding: "Feeding", out: "Out & about", clothing: "Clothing", postpartum: "Your recovery", safety: "Health & safety", other: "Living & play" };
   const ISTATUS = [["shortlist", "Shortlist"], ["ordered", "Ordered"], ["arrived", "Arrived"], ["in_place", "In place"]];
   const SOURCE = { buy: "Buy new", secondhand: "Second-hand", borrow: "Borrow", gift: "Gift" };
   const PHASES = [
@@ -90,7 +90,7 @@
 
   // Self-update: home-screen apps can't be reloaded by hand, so check version.json
   // (bypassing the cache) on open and when returning to the app; reload once if newer.
-  const APP_VERSION = "7";
+  const APP_VERSION = "8";
   async function checkForUpdate() {
     if (document.hidden) return;
     try {
