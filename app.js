@@ -88,6 +88,26 @@
   setInterval(refresh, 20000);
   document.addEventListener("visibilitychange", refresh);
 
+  // Self-update: home-screen apps can't be reloaded by hand, so check version.json
+  // (bypassing the cache) on open and when returning to the app; reload once if newer.
+  const APP_VERSION = "6";
+  async function checkForUpdate() {
+    if (document.hidden) return;
+    try {
+      const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      const { version } = await r.json();
+      if (version && version !== APP_VERSION) {
+        const tried = sessionStorage.getItem("babyPlanUpdateTried");
+        if (tried === version) return; // avoid reload loops if the cache is stubborn
+        sessionStorage.setItem("babyPlanUpdateTried", version);
+        location.reload();
+      }
+    } catch (e) { /* offline: keep current version */ }
+  }
+  checkForUpdate();
+  document.addEventListener("visibilitychange", checkForUpdate);
+
   /* ---------- render: shared ---------- */
   function renderHeader() {
     const w = gestWeek(), s = state.settings;

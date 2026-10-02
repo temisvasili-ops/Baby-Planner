@@ -27,4 +27,9 @@ Every push to `main` redeploys automatically.
 
 ## Updating
 
-When you change `styles.css`, `app.js`, `config.js` or the icon, bump the `?v=` number on their links in `index.html` so phones load the new files instead of cached copies.
+When you change anything, bump the version in three places so phones (including home-screen apps) pick it up:
+1. `version.json`
+2. `APP_VERSION` in `app.js`
+3. the `?v=` numbers on the links in `index.html`
+
+The app checks `version.json` each time it opens and reloads itself if the version is newer.
