@@ -91,7 +91,7 @@
 
   // Self-update: home-screen apps can't be reloaded by hand, so check version.json
   // (bypassing the cache) on open and when returning to the app; reload once if newer.
-  const APP_VERSION = "9";
+  const APP_VERSION = "10";
   async function checkForUpdate() {
     if (document.hidden) return;
     try {
@@ -267,11 +267,26 @@
   /* ---------- interactions ---------- */
   const find = (arr, id) => arr.find(x => x.id === id);
   const cycleOwner = o => o === "me" ? "partner" : o === "partner" ? "both" : "me";
-  async function optimistic(arr, id, patch, table) {
+  async function optimistic(arr, id, patch, table, label) {
     const row = find(arr, id); if (!row) return;
     const prev = { ...row }; Object.assign(row, patch); render();
-    if (!await run(sb.from(table).update(patch).eq("id", id))) { Object.assign(row, prev); render(); }
+    if (!await run(sb.from(table).update(patch).eq("id", id))) { Object.assign(row, prev); render(); return; }
+    if (label) {
+      const back = {}; Object.keys(patch).forEach(k => { back[k] = prev[k]; });
+      showUndo(label, () => optimistic(arr, id, back, table));
+    }
   }
+
+  /* Undo toast: shown for 6 seconds after any tick, status or owner change */
+  let toastTimer = null;
+  function showUndo(label, undo) {
+    const t = $("toast");
+    t.innerHTML = `<span>${esc(label)}</span><button type="button" class="btn mini" id="undoBtn">Undo</button>`;
+    t.hidden = false; t.classList.add("show");
+    $("undoBtn").onclick = () => { hideToast(); undo(); };
+    clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 6000);
+  }
+  function hideToast() { const t = $("toast"); t.classList.remove("show"); t.hidden = true; }
 
   document.addEventListener("click", async ev => {
     const b = ev.target.closest("button"); if (!b) return;
@@ -282,18 +297,18 @@
     if (d.zone) { state.zone = d.zone; render(); return; }
     if (d.kitshow) { state.kitShow = d.kitshow; render(); return; }
     if (d.close !== undefined) { b.closest("dialog").close(); return; }
-    if (d.tick) { const t = find(state.tasks, d.tick); const nx = t.status === "todo" ? "doing" : t.status === "doing" ? "done" : "todo"; return optimistic(state.tasks, t.id, { status: nx }, "tasks"); }
-    if (d.towner) { const t = find(state.tasks, d.towner); return optimistic(state.tasks, t.id, { owner: cycleOwner(t.owner) }, "tasks"); }
+    if (d.tick) { const t = find(state.tasks, d.tick); const nx = t.status === "todo" ? "doing" : t.status === "doing" ? "done" : "todo"; return optimistic(state.tasks, t.id, { status: nx }, "tasks", `${t.title}: ${{ todo: "To do", doing: "In progress", done: "Done" }[nx]}`); }
+    if (d.towner) { const t = find(state.tasks, d.towner); const o = cycleOwner(t.owner); return optimistic(state.tasks, t.id, { owner: o }, "tasks", `${t.title}: now ${ownerName(o)}`); }
     if (d.tedit) return openTask(find(state.tasks, d.tedit));
-    if (d.istep) { const it = find(state.items, d.istep); const nx = ISTATUS[(istIdx(it.status) + 1) % ISTATUS.length][0]; return optimistic(state.items, it.id, { status: nx }, "items"); }
-    if (d.iowner) { const it = find(state.items, d.iowner); return optimistic(state.items, it.id, { owner: cycleOwner(it.owner) }, "items"); }
+    if (d.istep) { const it = find(state.items, d.istep); const nx = ISTATUS[(istIdx(it.status) + 1) % ISTATUS.length][0]; return optimistic(state.items, it.id, { status: nx }, "items", `${it.name}: ${ISTATUS[istIdx(nx)][1]}`); }
+    if (d.iowner) { const it = find(state.items, d.iowner); const o = cycleOwner(it.owner); return optimistic(state.items, it.id, { owner: o }, "items", `${it.name}: now ${ownerName(o)}`); }
     if (d.iedit) return openItem(find(state.items, d.iedit));
     if (d.cedit) return openCaddy(find(state.caddies, d.cedit));
     if (d.cidel) { const id = d.cidel; const prev = state.caddyItems; state.caddyItems = prev.filter(x => x.id !== id); render(); if (!await run(sb.from("caddy_items").delete().eq("id", id))) { state.caddyItems = prev; render(); } return; }
   });
   document.addEventListener("change", ev => {
     const el = ev.target;
-    if (el.dataset && el.dataset.cpack) optimistic(state.caddyItems, el.dataset.cpack, { packed: el.checked }, "caddy_items");
+    if (el.dataset && el.dataset.cpack) { const ci = find(state.caddyItems, el.dataset.cpack); optimistic(state.caddyItems, el.dataset.cpack, { packed: el.checked }, "caddy_items", `${ci ? ci.label : "Item"}: ${el.checked ? "packed" : "unpacked"}`); }
   });
   document.addEventListener("submit", async ev => {
     const f = ev.target; if (!f.dataset || !f.dataset.cadd) return;

@@ -165,3 +165,10 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
 .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.tick,.bar span,.progress span{transition:all .2s ease}}
+
+/* undo toast */
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translate(-50%,12px);opacity:0;z-index:20;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:10px 10px 10px 16px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:14px;box-shadow:0 6px 24px rgba(61,56,47,.25)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.toast .btn{background:var(--accent-soft);color:var(--accent-deep);border-color:transparent;flex:none}
+@media (prefers-reduced-motion:no-preference){.toast{transition:opacity .2s ease,transform .2s ease}}
