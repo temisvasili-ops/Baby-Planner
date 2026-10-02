@@ -90,7 +90,7 @@
 
   // Self-update: home-screen apps can't be reloaded by hand, so check version.json
   // (bypassing the cache) on open and when returning to the app; reload once if newer.
-  const APP_VERSION = "6";
+  const APP_VERSION = "7";
   async function checkForUpdate() {
     if (document.hidden) return;
     try {
