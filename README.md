@@ -24,3 +24,7 @@ A private planner for two: tasks timed to pregnancy weeks, a kit register by zon
 2. Open `https://<your-vercel-url>/#k=<code>` on each phone and bookmark it.
 
 Every push to `main` redeploys automatically.
+
+## Updating
+
+When you change `styles.css`, `app.js`, `config.js` or the icon, bump the `?v=` number on their links in `index.html` so phones load the new files instead of cached copies.
