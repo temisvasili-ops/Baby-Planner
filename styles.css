@@ -172,3 +172,13 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .toast .btn{background:var(--accent-soft);color:var(--accent-deep);border-color:transparent;flex:none}
 @media (prefers-reduced-motion:no-preference){.toast{transition:opacity .2s ease,transform .2s ease}}
+
+/* two-stage task progress: Started, then Done */
+li.row-item.task-row{grid-template-columns:1fr;gap:6px}
+.stages{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.stage{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:3px 11px 3px 5px;font:600 12.5px var(--body);cursor:pointer}
+.stage .box{width:18px;height:18px;border-radius:6px;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;line-height:1;color:var(--accent-ink);background:var(--surface)}
+.stage[data-stage="started"].on{color:var(--ink);border-color:color-mix(in srgb,var(--wood) 55%,transparent);background:color-mix(in srgb,var(--wood) 12%,var(--surface))}
+.stage[data-stage="started"].on .box{background:var(--wood);border-color:var(--wood)}
+.stage[data-stage="done"].on{color:var(--accent-deep);border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:var(--accent-soft)}
+.stage[data-stage="done"].on .box{background:var(--ok);border-color:var(--ok)}

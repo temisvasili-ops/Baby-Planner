@@ -91,7 +91,7 @@
 
   // Self-update: home-screen apps can't be reloaded by hand, so check version.json
   // (bypassing the cache) on open and when returning to the app; reload once if newer.
-  const APP_VERSION = "12";
+  const APP_VERSION = "13";
   async function checkForUpdate() {
     if (document.hidden) return;
     try {
@@ -146,10 +146,13 @@
     const d = dueDate(t), now = today(); let cls = "";
     if (t.status !== "done") { if (d < now) cls = "late"; else if (d - now <= 14 * DAY) cls = "soon"; }
     const when = t.anchor === "birth" ? `Birth +${t.at_n}d` : `Week ${t.at_n}`;
-    const tk = t.status === "done" ? "done" : t.status === "doing" ? "prog" : "";
-    return `<li class="row-item ${t.status === "done" ? "done" : ""}">
-      <button class="tick ${tk}" data-tick="${t.id}" aria-label="Status ${t.status}; change">${t.status === "done" ? "✓" : ""}</button>
+    const started = t.status === "doing" || t.status === "done", finished = t.status === "done";
+    return `<li class="row-item task-row ${finished ? "done" : ""}">
       <div class="main"><div class="title">${esc(t.title)}${t.hard ? '<span class="hard">DEADLINE</span>' : ""}</div>
+      <div class="stages" role="group" aria-label="Progress">
+        <button type="button" class="stage ${started ? "on" : ""}" data-stage="started" data-tid="${t.id}" aria-pressed="${started}"><span class="box">${started ? "✓" : ""}</span>Started</button>
+        <button type="button" class="stage ${finished ? "on" : ""}" data-stage="done" data-tid="${t.id}" aria-pressed="${finished}"><span class="box">${finished ? "✓" : ""}</span>Done</button>
+      </div>
       <div class="meta"><span class="due ${cls}">${when} · ${fmt(d)}</span>
         <button class="chip ${t.owner}" data-towner="${t.id}" aria-label="Owner ${esc(ownerName(t.owner))}; change">${esc(ownerName(t.owner))}</button>
         <span class="tag">${esc(STREAMS[t.stream] || t.stream)}</span>
@@ -297,6 +300,14 @@
     if (d.zone) { state.zone = d.zone; render(); return; }
     if (d.kitshow) { state.kitShow = d.kitshow; render(); return; }
     if (d.close !== undefined) { b.closest("dialog").close(); return; }
+    if (d.stage) {
+      const t = find(state.tasks, d.tid); if (!t) return;
+      const started = t.status === "doing" || t.status === "done", finished = t.status === "done";
+      // Started box: on = in progress; off = back to to-do. Done box: on = done (implies started); off = back to in progress.
+      const nx = d.stage === "started" ? (started ? "todo" : "doing") : (finished ? "doing" : "done");
+      const label = { todo: "Not started", doing: "Started", done: "Done" }[nx];
+      return optimistic(state.tasks, t.id, { status: nx }, "tasks", `${t.title}: ${label}`);
+    }
     if (d.tick) { const t = find(state.tasks, d.tick); const nx = t.status === "todo" ? "doing" : t.status === "doing" ? "done" : "todo"; return optimistic(state.tasks, t.id, { status: nx }, "tasks", `${t.title}: ${{ todo: "To do", doing: "In progress", done: "Done" }[nx]}`); }
     if (d.towner) { const t = find(state.tasks, d.towner); const o = cycleOwner(t.owner); return optimistic(state.tasks, t.id, { owner: o }, "tasks", `${t.title}: now ${ownerName(o)}`); }
     if (d.tedit) return openTask(find(state.tasks, d.tedit));
