@@ -87,11 +87,12 @@
     if (await loadAll()) render();
   }
   setInterval(refresh, 20000);
+  let rz = null; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (!$("app").hidden) renderHeader(); }, 150); });
   document.addEventListener("visibilitychange", refresh);
 
   // Self-update: home-screen apps can't be reloaded by hand, so check version.json
   // (bypassing the cache) on open and when returning to the app; reload once if newer.
-  const APP_VERSION = "13";
+  const APP_VERSION = "15";
   async function checkForUpdate() {
     if (document.hidden) return;
     try {
@@ -113,12 +114,18 @@
   function renderHeader() {
     const w = gestWeek(), s = state.settings;
     $("weekline").textContent = `Week ${w} · due ${fmt(parseDate(s.edd))} · ${s.me_name} & ${s.partner_name}`;
-    const x = wk => 20 + (wk - 14) / (44 - 14) * 560;
-    let h = `<line x1="20" y1="30" x2="580" y2="30" stroke="var(--line)" stroke-width="2"/>`;
-    for (let k = 14; k <= 40; k += 2) h += `<line x1="${x(k)}" y1="25" x2="${x(k)}" y2="35" stroke="var(--line)"/><text x="${x(k)}" y="50" text-anchor="middle">${k}</text>`;
-    h += `<text x="${x(42.5)}" y="50" text-anchor="middle">+12wk</text>`;
-    const cw = Math.max(14, Math.min(44, w));
-    h += `<line x1="20" y1="30" x2="${x(cw)}" y2="30" stroke="var(--accent)" stroke-width="3"/><circle cx="${x(cw)}" cy="30" r="6" fill="var(--accent)"/><text x="${cw < 17 ? x(cw) - 6 : x(cw)}" y="16" text-anchor="${cw < 17 ? "start" : "middle"}" style="fill:var(--accent);font-weight:500">now · ${w}w</text>`;
+    const svg = $("ruler"), W = Math.max(300, Math.round(svg.clientWidth || 600));
+    svg.setAttribute("viewBox", `0 0 ${W} 54`);
+    const x = wk => 16 + (wk - 1) / (44 - 1) * (W - 32); // week 1 to 40, then 12 weeks after birth
+    let h = `<line x1="16" y1="30" x2="${W - 16}" y2="30" stroke="var(--line)" stroke-width="2"/>`;
+    for (let k = 1; k <= 40; k++) h += `<line x1="${x(k)}" y1="${k % 4 === 0 || k === 1 ? 24 : 27}" x2="${x(k)}" y2="${k % 4 === 0 || k === 1 ? 36 : 33}" stroke="var(--line)"/>`;
+    (W < 480 ? [1, 8, 16, 24, 32, 40] : [1, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40]).forEach(k => {
+      const end = k === 40 && W < 480; // keep "40" clear of the after-birth label on phones
+      h += `<text x="${end ? x(k) + 3 : x(k)}" y="50" text-anchor="${end ? "end" : "middle"}">${k}</text>`;
+    });
+    h += (W < 480 ? `<text x="${W - 2}" y="50" text-anchor="end">+12w</text>` : `<text x="${x(42.5)}" y="50" text-anchor="middle">+12wk</text>`);
+    const cw = Math.max(1, Math.min(44, w));
+    h += `<line x1="16" y1="30" x2="${x(cw)}" y2="30" stroke="var(--accent)" stroke-width="3"/><circle cx="${x(cw)}" cy="30" r="6" fill="var(--accent)"/><text x="${cw < 4 ? x(cw) - 6 : cw > 41 ? x(cw) + 6 : x(cw)}" y="16" text-anchor="${cw < 4 ? "start" : cw > 41 ? "end" : "middle"}" style="fill:var(--accent);font-weight:500">now · ${w}w</text>`;
     $("ruler").innerHTML = h;
     document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
     ["plan", "kit", "caddies", "budget"].forEach(v => { $("view-" + v).hidden = v !== state.view; });

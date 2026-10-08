@@ -50,7 +50,7 @@ h3{font:500 18px/1.25 var(--display);margin:0;font-variation-settings:"SOFT" 100
 .brand img{width:44px;height:44px;border-radius:12px;flex:none}
 .head-actions{display:flex;gap:8px}
 .ruler{overflow-x:auto;margin-top:8px}
-.ruler svg{display:block;min-width:560px;width:100%;height:54px}
+.ruler svg{display:block;width:100%;height:54px}
 .ruler text{font:600 10.5px var(--num);fill:var(--muted)}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px}
 .tabs button{border:1px solid transparent;background:none;color:var(--muted);font:600 14.5px var(--body);padding:7px 16px;border-radius:999px;cursor:pointer;white-space:nowrap}
